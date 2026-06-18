@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RE:ON 파트너 영업 관리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#ffffff; --bg2:#f5f5f4; --bg3:#eeede9;
+  --text:#1a1a18; --text2:#6b6b67; --text3:#9d9c98;
+  --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.22);
+  --info-bg:#e6f1fb; --info-txt:#185fa5;
+  --ok-bg:#eaf3de;  --ok-txt:#3b6d11;
+  --warn-bg:#faeeda; --warn-txt:#854f0b;
+  --err-bg:#fcebeb;  --err-txt:#a32d2d;
+  --radius-md:8px; --radius-lg:12px;
+  --navy:#0D2B55; --gold:#C9A84C;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;background:#f8f8f6;color:var(--text);font-size:14px;overflow-x:hidden;}
+.container{max-width:1600px;margin:0 auto;padding:1.5rem 1rem;}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px;}
+.top-bar h1{font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px;}
+.badge-reon{background:var(--navy);color:var(--gold);font-size:11px;font-weight:600;padding:3px 9px;border-radius:4px;letter-spacing:.5px;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem;}
+.stat{background:var(--bg);border-radius:var(--radius-md);padding:.75rem 1rem;border:.5px solid var(--border);}
+.stat-label{font-size:12px;color:var(--text2);margin-bottom:4px;}
+.stat-value{font-size:20px;font-weight:500;}
+input[type=text],input[type=date],select,textarea{border:.5px solid var(--border2);border-radius:var(--radius-md);padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;}
+input[type=text]:focus,input[type=date]:focus,select:focus,textarea:focus{border-color:var(--navy);}
+button{font-family:inherit;cursor:pointer;}
+.btn-primary{background:var(--navy);color:var(--gold);border:none;border-radius:var(--radius-md);padding:8px 16px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary:hover{background:#163d7a;}
+.btn-sm{font-size:12px;padding:5px 10px;border-radius:6px;border:.5px solid var(--border2);background:var(--bg);color:var(--text2);}
+.btn-sm:hover{background:var(--bg2);}
+.btn-danger{font-size:12px;padding:5px 10px;border-radius:6px;border:.5px solid #f0a0a0;background:transparent;color:var(--err-txt);}
+.btn-danger:hover{background:var(--err-bg);}
+.toolbar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.toolbar input[type=text]{flex:1;min-width:160px;}
+.table-wrap{overflow-x:auto;border:.5px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);}
+table{width:100%;border-collapse:collapse;min-width:1200px;}
+thead th{background:var(--bg2);font-weight:500;font-size:11px;color:var(--text2);padding:9px 10px;text-align:left;border-bottom:.5px solid var(--border);white-space:nowrap;}
+thead th.th-amt{text-align:right;background:#0D2B5509;}
+tbody tr{border-bottom:.5px solid var(--border);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--bg2);}
+tbody td{padding:9px 10px;vertical-align:middle;}
+td.td-amt{text-align:right;background:#0D2B5504;}
+td.td-amt-total{text-align:right;font-weight:500;color:var(--navy);background:#0D2B5509;}
+.td-sub{color:var(--text2);font-size:12px;}
+.name-link{font-weight:500;color:var(--navy);cursor:pointer;border-bottom:1px dashed transparent;transition:border-color .15s;}
+.name-link:hover{border-bottom-color:var(--navy);}
+.cnt-badge{font-size:10px;color:var(--text3);margin-left:4px;}
+.amt-input{width:100%;text-align:right;font-size:12px;border:none;background:transparent;color:var(--text);outline:none;cursor:pointer;font-variant-numeric:tabular-nums;padding:2px 0;font-family:inherit;}
+.amt-input:focus{background:var(--bg2);border-radius:4px;cursor:text;padding:2px 4px;}
+.amt-input::placeholder{color:var(--text3);}
+.status-sel{display:inline-block;font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;border:none;cursor:pointer;font-family:inherit;}
+.status-badge{display:inline-block;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.s-initial{background:var(--info-bg);color:var(--info-txt);}
+.s-positive{background:var(--ok-bg);color:var(--ok-txt);}
+.s-neutral{background:var(--bg2);color:var(--text2);}
+.s-negative{background:var(--err-bg);color:var(--err-txt);}
+.s-followup{background:var(--warn-bg);color:var(--warn-txt);}
+.s-contract{background:#0D2B5515;color:var(--navy);}
+.s-vpositive{background:#d4edda;color:#155724;font-weight:600;}
+.type-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;}
+.type-visit{background:#0D2B5512;color:var(--navy);}
+.type-call{background:var(--ok-bg);color:var(--ok-txt);}
+.type-email{background:var(--warn-bg);color:var(--warn-txt);}
+.type-other{background:var(--bg2);color:var(--text2);}
+.empty{padding:2.5rem;text-align:center;color:var(--text2);font-size:14px;}
+
+/* 로딩 오버레이 */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.loading-overlay.show{display:flex;}
+.spinner{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-msg{font-size:13px;color:var(--text2);}
+
+/* 토스트 */
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:9px 18px;border-radius:var(--radius-md);font-size:13px;opacity:0;transition:opacity .25s,transform .25s;z-index:600;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--err-txt);}
+
+/* 업체 모달 */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg);border-radius:var(--radius-lg);border:.5px solid var(--border);padding:1.5rem;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;}
+.modal h3{font-size:16px;font-weight:500;margin-bottom:1rem;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-full{grid-column:1/-1;}
+.form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;}
+.form-group input,.form-group select,.form-group textarea{width:100%;}
+.form-group textarea{resize:vertical;height:64px;}
+.sec-div{grid-column:1/-1;font-size:12px;font-weight:500;color:var(--text2);padding:8px 0 4px;border-bottom:.5px solid var(--border);margin-top:4px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:1rem;}
+
+/* 사이드 패널 */
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:300;}
+.panel-overlay.open{display:block;}
+.panel{position:fixed;top:0;right:-700px;width:680px;max-width:96vw;height:100vh;background:var(--bg);border-left:.5px solid var(--border);display:flex;flex-direction:column;z-index:301;transition:right .28s cubic-bezier(.4,0,.2,1);}
+.panel.open{right:0;}
+.ph{padding:1.25rem 1.5rem 1rem;border-bottom:.5px solid var(--border);flex-shrink:0;}
+.ph-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:.75rem;}
+.ph-name{font-size:18px;font-weight:500;color:var(--navy);}
+.ph-meta{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.6;}
+.ph-close{background:none;border:none;cursor:pointer;color:var(--text2);font-size:20px;padding:2px;line-height:1;flex-shrink:0;}
+.ph-close:hover{color:var(--text);}
+.ph-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.chip{background:var(--bg2);border-radius:6px;padding:4px 10px;font-size:12px;}
+.chip strong{color:var(--navy);font-weight:500;margin-left:3px;}
+.cf{padding:1rem 1.5rem;border-bottom:.5px solid var(--border);background:#0D2B5505;flex-shrink:0;}
+.cf-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:5px;}
+.cf-r1{display:grid;grid-template-columns:155px 150px 1fr;gap:8px;margin-bottom:8px;}
+.cf-r2{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:flex-start;}
+.cf textarea{width:100%;height:72px;resize:vertical;font-size:13px;}
+.cf select,.cf input[type=date]{font-size:13px;width:100%;}
+.panel-body{flex:1;overflow-y:auto;padding:1.25rem 1.5rem;}
+.tl{display:flex;flex-direction:column;}
+.tl-item{display:flex;gap:14px;}
+.tl-item:last-child .tl-line{display:none;}
+.tl-spine{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:24px;}
+.tl-dot{width:11px;height:11px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.tl-dot.type-visit{background:var(--navy);}
+.tl-dot.type-call{background:var(--ok-txt);}
+.tl-dot.type-email{background:var(--warn-txt);}
+.tl-dot.type-other{background:var(--text3);}
+.tl-line{width:1.5px;background:var(--border2);flex:1;min-height:14px;margin-top:4px;}
+.tl-content{flex:1;padding-bottom:22px;}
+.tl-header{display:flex;align-items:center;gap:7px;margin-bottom:7px;flex-wrap:wrap;}
+.tl-date{font-size:12px;font-weight:500;color:var(--text2);}
+.tl-card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-md);padding:10px 14px;font-size:13px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-word;}
+.tl-foot{display:flex;justify-content:flex-end;margin-top:4px;}
+.tl-del{font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:3px;opacity:0;transition:opacity .15s;}
+.tl-item:hover .tl-del{opacity:1;}
+.tl-del:hover{color:var(--err-txt);}
+.panel-empty{text-align:center;padding:3rem 1rem;color:var(--text2);font-size:14px;}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loadingMsg">데이터 불러오는 중...</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="container">
+  <div class="top-bar">
+    <h1><span class="badge-reon">RE:ON</span> 구독 영업관리</h1>
+    <button class="btn-primary" onclick="openModal()"><i class="ti ti-plus"></i> 업체 추가</button>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="업체명 또는 담당자 검색..." oninput="render()" />
+    <select id="filterStatus" onchange="render()">
+      <option value="">전체 상태</option>
+      <option value="contract">구독제휴회사</option>
+      <option value="vpositive">매우 긍정적</option>
+      <option value="positive">긍정적</option>
+      <option value="neutral">중립</option>
+      <option value="negative">부정적</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th style="min-width:160px;">업체명</th><th style="min-width:160px;">주요 제품</th><th style="min-width:100px;">연매출</th><th style="min-width:120px;">담당자</th><th style="min-width:130px;">연락처</th>
+        <th class="th-amt" style="min-width:100px;">취급총액</th>
+        <th class="th-amt" style="min-width:80px;">'26년 8월</th><th class="th-amt" style="min-width:80px;">'26년 7월</th>
+        <th class="th-amt" style="min-width:80px;">'26년 6월</th><th class="th-amt" style="min-width:80px;">'26년 5월</th>
+        <th>최근 컨택</th><th>상태</th><th>관리</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none;">
+      <i class="ti ti-building-off" style="font-size:30px;display:block;margin:0 auto 8px;"></i>
+      등록된 업체가 없습니다
+    </div>
+  </div>
+</div>
+
+<!-- 업체 모달 -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeIfOut(event)">
+  <div class="modal">
+    <h3 id="modalTitle">업체 추가</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>업체명 *</label><input type="text" id="f-name" placeholder="(주)예시기업" /></div>
+      <div class="form-group"><label>주요 제품</label><input type="text" id="f-product" placeholder="산업용 장비 등" /></div>
+      <div class="form-group"><label>연매출액</label><input type="text" id="f-revenue" placeholder="50억" /></div>
+      <div class="form-group"><label>담당자명</label><input type="text" id="f-contact" placeholder="홍길동 부장" /></div>
+      <div class="form-group"><label>연락처</label><input type="text" id="f-phone" placeholder="010-0000-0000" /></div>
+      <div class="form-group"><label>초기 상태</label>
+        <select id="f-status">
+          <option value="contract">구독제휴회사</option><option value="vpositive">매우 긍정적</option>
+          <option value="positive">긍정적</option><option value="neutral">중립</option>
+          <option value="negative">부정적</option>
+        </select>
+      </div>
+      <div class="form-group form-full"><label>사업장 주소</label><input type="text" id="f-address" placeholder="서울시 강남구 테헤란로 123" /></div>
+      <div class="sec-div"><i class="ti ti-chart-bar" style="vertical-align:-2px;margin-right:4px;"></i>월별 취급액</div>
+      <div class="form-group"><label>'26년 8월</label><input type="text" id="f-m8" placeholder="0" oninput="fmtInput(this)" /></div>
+      <div class="form-group"><label>'26년 7월</label><input type="text" id="f-m7" placeholder="0" oninput="fmtInput(this)" /></div>
+      <div class="form-group"><label>'26년 6월</label><input type="text" id="f-m6" placeholder="0" oninput="fmtInput(this)" /></div>
+      <div class="form-group"><label>'26년 5월</label><input type="text" id="f-m5" placeholder="0" oninput="fmtInput(this)" /></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeModal()">취소</button>
+      <button class="btn-primary" onclick="saveCompany()"><i class="ti ti-check"></i> 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 컨택 이력 패널 -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="ph">
+    <div class="ph-top">
+      <div>
+        <div class="ph-name" id="pn-name"></div>
+        <div class="ph-meta" id="pn-meta"></div>
+      </div>
+      <button class="ph-close" onclick="closePanel()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ph-chips" id="pn-chips"></div>
+  </div>
+  <div class="cf">
+    <div class="cf-title"><i class="ti ti-pencil-plus" style="font-size:13px;"></i> 컨택 이력 추가</div>
+    <div class="cf-r1">
+      <input type="date" id="pf-date" />
+      <select id="pf-type">
+        <option value="visit">방문 미팅</option>
+        <option value="call">유선 통화</option>
+        <option value="email">이메일</option>
+        <option value="other">기타</option>
+      </select>
+      <select id="pf-status">
+        <option value="contract">구독제휴회사</option><option value="vpositive">매우 긍정적</option>
+        <option value="positive">긍정적</option><option value="neutral">중립</option>
+        <option value="negative">부정적</option>
+      </select>
+    </div>
+    <div class="cf-r2">
+      <textarea id="pf-text" placeholder="미팅 · 통화 내용, 주요 논의 사항, 다음 액션 아이템 등을 기록하세요..."></textarea>
+      <button class="btn-primary" onclick="addContact()" style="height:72px;padding:0 18px;flex-shrink:0;font-size:15px;"><i class="ti ti-send"></i></button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <div class="panel-empty" id="panel-empty" style="display:none;">
+      <i class="ti ti-notes-off" style="font-size:28px;display:block;margin:0 auto 8px;"></i>
+      아직 컨택 이력이 없습니다
+    </div>
+    <div class="tl" id="tl"></div>
+  </div>
+</div>
+
+<script>
+/* ══ Supabase 설정 ══ */
+const SB_URL = "https://tukmzwfzjftrldegpgny.supabase.co";
+const SB_KEY = "sb_publishable_R-CLkYtEv3GqgT0jdy7KJQ_A6cQ9Aqe";
+
+const headers = {
+  "Content-Type": "application/json",
+  "apikey": SB_KEY,
+  "Authorization": "Bearer " + SB_KEY,
+  "Prefer": "return=representation"
+};
+
+async function sbGet(table, query="") {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${query}`, { headers });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbPost(table, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, { method:"POST", headers, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbPatch(table, id, body) {
+  const h = {...headers, "Prefer":"return=representation"};
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, { method:"PATCH", headers:h, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbDelete(table, id) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, { method:"DELETE", headers });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+/* ══ 상태 ══ */
+let companies = [];   // [{...company, contacts:[...]}]
+let editId = null;
+let panelId = null;
+
+const TM = {
+  visit:{label:"방문 미팅", cls:"type-visit", icon:"ti-building"},
+  call: {label:"유선 통화", cls:"type-call",  icon:"ti-phone"},
+  email:{label:"이메일",    cls:"type-email", icon:"ti-mail"},
+  other:{label:"기타",      cls:"type-other", icon:"ti-dots"}
+};
+const SM = {
+  contract:{label:"구독제휴회사",  cls:"s-contract"},
+  vpositive:{label:"매우 긍정적", cls:"s-vpositive"},
+  positive: {label:"긍정적",      cls:"s-positive"},
+  neutral:  {label:"중립",        cls:"s-neutral"},
+  negative: {label:"부정적",      cls:"s-negative"}
+};
+
+/* ══ 유틸 ══ */
+function parseAmt(s){return parseInt((s||"").toString().replace(/[^0-9]/g,""),10)||0;}
+function fmtAmt(n){return n?Number(n).toLocaleString("ko-KR"):"";}
+function calcTotal(c){return (c.m5||0)+(c.m6||0)+(c.m7||0)+(c.m8||0);}
+function fmtInput(el){const r=el.value.replace(/[^0-9]/g,"");el.value=r?Number(r).toLocaleString("ko-KR"):"";}
+function escH(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function lastContact(c){if(!(c.contacts&&c.contacts.length))return null;return c.contacts.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];}
+
+let toastTimer;
+function toast(msg, err=false){
+  const el=document.getElementById("toast");
+  el.textContent=msg; el.className="toast"+(err?" err":"")+" show";
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),2500);
+}
+function loading(show, msg="저장 중..."){
+  document.getElementById("loadingOverlay").classList.toggle("show",show);
+  document.getElementById("loadingMsg").textContent=msg;
+}
+
+/* ══ 데이터 로드 ══ */
+async function loadAll(){
+  loading(true,"데이터 불러오는 중...");
+  try {
+    const [cos, cts] = await Promise.all([
+      sbGet("companies","order=created_at.asc"),
+      sbGet("contacts","order=date.desc")
+    ]);
+    companies = cos.map(c=>({
+      ...c,
+      contacts: cts.filter(ct=>ct.company_id===c.id)
+    }));
+    render();
+  } catch(e){
+    toast("데이터 로드 실패: "+e.message, true);
+  } finally {
+    loading(false);
+  }
+}
+
+/* ══ 통계 ══ */
+function updateStats(){
+  let pos=0,fup=0,con=0,tot=0;
+  companies.forEach(c=>{
+    if(c.status==="positive")pos++;
+    if(c.status==="followup")fup++;
+    if(c.status==="contract")con++;
+    tot+=calcTotal(c);
+  });
+  document.getElementById("stats").innerHTML=`
+    <div class="stat"><div class="stat-label">전체 업체</div><div class="stat-value">${companies.length}</div></div>
+    <div class="stat"><div class="stat-label">긍정 반응</div><div class="stat-value" style="color:var(--ok-txt)">${pos}</div></div>
+    <div class="stat"><div class="stat-label">팔로업 필요</div><div class="stat-value" style="color:var(--warn-txt)">${fup}</div></div>
+    <div class="stat"><div class="stat-label">계약 진행</div><div class="stat-value" style="color:var(--navy)">${con}</div></div>
+    <div class="stat"><div class="stat-label">전체 취급총액</div><div class="stat-value" style="font-size:15px;color:var(--navy)">${tot?tot.toLocaleString("ko-KR"):"-"}</div></div>
+  `;
+}
+
+/* ══ 테이블 렌더 ══ */
+function render(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const fs=document.getElementById("filterStatus").value;
+  const filtered=companies.filter(c=>
+    (!q||c.name.toLowerCase().includes(q)||(c.contact||"").toLowerCase().includes(q))&&
+    (!fs||c.status===fs)
+  );
+  updateStats();
+  const tbody=document.getElementById("tbody");
+  document.getElementById("empty").style.display=filtered.length===0?"block":"none";
+  if(!filtered.length){tbody.innerHTML="";return;}
+  tbody.innerHTML=filtered.map(c=>{
+    const lc=lastContact(c),s=SM[c.status]||SM.initial,total=calcTotal(c),cnt=(c.contacts||[]).length;
+    return `<tr>
+      <td>
+        <span class="name-link" onclick="openPanel(${c.id})">${escH(c.name)}</span>
+        ${cnt>0?`<span class="cnt-badge">(${cnt}건)</span>`:""}
+      </td>
+      <td class="td-sub">${escH(c.product||"-")}</td>
+      <td>${escH(c.revenue||"-")}</td>
+      <td>${escH(c.contact||"-")}</td>
+      <td class="td-sub" style="white-space:nowrap;">${escH(c.phone||"-")}</td>
+      <td class="td-amt-total" id="tot-${c.id}">${fmtAmt(total)||"-"}</td>
+      <td class="td-amt">${amtCell(c.id,"m8",c.m8)}</td>
+      <td class="td-amt">${amtCell(c.id,"m7",c.m7)}</td>
+      <td class="td-amt">${amtCell(c.id,"m6",c.m6)}</td>
+      <td class="td-amt">${amtCell(c.id,"m5",c.m5)}</td>
+      <td class="td-sub" style="white-space:nowrap;">${lc?lc.date:"-"}</td>
+      <td>
+        <select class="status-sel ${s.cls}" onchange="chgStatus(${c.id},this.value)">
+          ${Object.entries(SM).map(([v,m])=>`<option value="${v}" ${c.status===v?"selected":""}>${m.label}</option>`).join("")}
+        </select>
+      </td>
+      <td><div style="display:flex;gap:4px;">
+        <button class="btn-sm" onclick="openEdit(${c.id})"><i class="ti ti-edit"></i></button>
+        <button class="btn-danger" onclick="delCo(${c.id})"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+
+/* ══ 취급액 인라인 ══ */
+function amtCell(id,field,val){
+  const v=fmtAmt(val);
+  return `<input class="amt-input" data-id="${id}" data-field="${field}" value="${v}" placeholder="-"
+    onfocus="this.value=this.value.replace(/,/g,'')"
+    onblur="saveAmt(this)" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />`;
+}
+async function saveAmt(el){
+  const id=Number(el.dataset.id),field=el.dataset.field,raw=parseAmt(el.value);
+  el.value=fmtAmt(raw);
+  const c=companies.find(x=>x.id===id); if(!c)return;
+  c[field]=raw;
+  const tot=document.getElementById("tot-"+id);
+  if(tot)tot.textContent=fmtAmt(calcTotal(c))||"-";
+  updateStats();
+  try {
+    await sbPatch("companies",id,{[field]:raw});
+    toast("저장됐습니다");
+  } catch(e){ toast("저장 실패: "+e.message,true); }
+}
+
+/* ══ 상태 변경 ══ */
+async function chgStatus(id,val){
+  const c=companies.find(x=>x.id===id); if(!c)return;
+  c.status=val; render();
+  if(panelId===id)renderPanel();
+  try {
+    await sbPatch("companies",id,{status:val});
+    toast("상태 변경됐습니다");
+  } catch(e){ toast("저장 실패: "+e.message,true); }
+}
+
+/* ══ 업체 삭제 ══ */
+async function delCo(id){
+  if(!confirm("해당 업체를 삭제하시겠습니까? (컨택 이력도 함께 삭제됩니다)"))return;
+  loading(true,"삭제 중...");
+  try {
+    await sbDelete("companies",id);
+    companies=companies.filter(c=>c.id!==id);
+    render(); toast("삭제됐습니다");
+  } catch(e){ toast("삭제 실패: "+e.message,true); }
+  finally{ loading(false); }
+}
+
+/* ══ 사이드 패널 ══ */
+function openPanel(id){
+  panelId=id;
+  document.getElementById("pf-date").value=new Date().toISOString().split("T")[0];
+  document.getElementById("pf-text").value="";
+  renderPanel();
+  document.getElementById("panelOverlay").classList.add("open");
+  document.getElementById("panel").classList.add("open");
+}
+function closePanel(){
+  document.getElementById("panelOverlay").classList.remove("open");
+  document.getElementById("panel").classList.remove("open");
+  panelId=null;
+}
+function renderPanel(){
+  const c=companies.find(x=>x.id===panelId); if(!c)return;
+  const cts=(c.contacts||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById("pn-name").textContent=c.name;
+  document.getElementById("pn-meta").textContent=[c.address,c.contact&&c.phone?c.contact+" · "+c.phone:c.contact||c.phone].filter(Boolean).join("\n");
+  const s=SM[c.status]||SM.initial;
+  document.getElementById("pn-chips").innerHTML=`
+    <div class="chip">컨택 이력<strong>${cts.length}건</strong></div>
+    <div class="chip">현재 상태<strong>
+      <select class="status-sel ${s.cls}" onchange="chgStatus(${c.id},this.value)" style="font-size:11px;padding:1px 6px;border-radius:20px;border:none;cursor:pointer;font-weight:500;font-family:inherit;">
+        ${Object.entries(SM).map(([v,m])=>`<option value="${v}" ${c.status===v?"selected":""}>${m.label}</option>`).join("")}
+      </select>
+    </strong></div>
+  `;
+  document.getElementById("pf-status").value=c.status;
+  const empty=document.getElementById("panel-empty"),tl=document.getElementById("tl");
+  if(!cts.length){empty.style.display="block";tl.innerHTML="";return;}
+  empty.style.display="none";
+  tl.innerHTML=cts.map(ct=>{
+    const tm=TM[ct.type]||TM.other,sm=SM[ct.status]||SM.initial;
+    return `<div class="tl-item">
+      <div class="tl-spine">
+        <div class="tl-dot ${tm.cls}"></div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-content">
+        <div class="tl-header">
+          <span class="tl-date">${ct.date}</span>
+          <span class="type-badge ${tm.cls}"><i class="ti ${tm.icon}" style="font-size:11px;"></i>${tm.label}</span>
+          <span class="status-badge ${sm.cls}">${sm.label}</span>
+        </div>
+        <div class="tl-card">${escH(ct.text||"")}</div>
+        <div class="tl-foot">
+          <button class="tl-del" onclick="delContact(${ct.id})"><i class="ti ti-trash" style="font-size:11px;"></i> 삭제</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function addContact(){
+  const date=document.getElementById("pf-date").value;
+  const type=document.getElementById("pf-type").value;
+  const status=document.getElementById("pf-status").value;
+  const text=document.getElementById("pf-text").value.trim();
+  if(!date||!text){alert("날짜와 내용을 입력해주세요.");return;}
+  const c=companies.find(x=>x.id===panelId); if(!c)return;
+  loading(true,"저장 중...");
+  try {
+    const [newCt]=await sbPost("contacts",{company_id:panelId,date,type,status,text});
+    if(!c.contacts)c.contacts=[];
+    c.contacts.push(newCt);
+    c.status=status;
+    await sbPatch("companies",panelId,{status});
+    render(); renderPanel();
+    document.getElementById("pf-text").value="";
+    toast("컨택 이력이 저장됐습니다");
+  } catch(e){ toast("저장 실패: "+e.message,true); }
+  finally{ loading(false); }
+}
+
+async function delContact(ctId){
+  if(!confirm("이 컨택 이력을 삭제하시겠습니까?"))return;
+  loading(true,"삭제 중...");
+  try {
+    await sbDelete("contacts",ctId);
+    const c=companies.find(x=>x.id===panelId);
+    if(c) c.contacts=(c.contacts||[]).filter(ct=>ct.id!==ctId);
+    render(); renderPanel();
+    toast("삭제됐습니다");
+  } catch(e){ toast("삭제 실패: "+e.message,true); }
+  finally{ loading(false); }
+}
+
+/* ══ 업체 모달 ══ */
+function openModal(){
+  editId=null;
+  document.getElementById("modalTitle").textContent="업체 추가";
+  ["name","product","revenue","contact","phone","address"].forEach(f=>document.getElementById("f-"+f).value="");
+  ["m5","m6","m7","m8"].forEach(f=>document.getElementById("f-"+f).value="");
+  document.getElementById("f-status").value="initial";
+  document.getElementById("modalOverlay").classList.add("open");
+}
+function openEdit(id){
+  const c=companies.find(x=>x.id===id); if(!c)return;
+  editId=id;
+  document.getElementById("modalTitle").textContent="업체 정보 수정";
+  document.getElementById("f-name").value=c.name||"";
+  document.getElementById("f-product").value=c.product||"";
+  document.getElementById("f-revenue").value=c.revenue||"";
+  document.getElementById("f-contact").value=c.contact||"";
+  document.getElementById("f-phone").value=c.phone||"";
+  document.getElementById("f-address").value=c.address||"";
+  document.getElementById("f-status").value=c.status||"initial";
+  ["m5","m6","m7","m8"].forEach(f=>{document.getElementById("f-"+f).value=fmtAmt(c[f]);});
+  document.getElementById("modalOverlay").classList.add("open");
+}
+function closeModal(){document.getElementById("modalOverlay").classList.remove("open");}
+function closeIfOut(e){if(e.target===document.getElementById("modalOverlay"))closeModal();}
+
+async function saveCompany(){
+  const name=document.getElementById("f-name").value.trim();
+  if(!name){alert("업체명을 입력해주세요.");return;}
+  const payload={
+    name,
+    product:document.getElementById("f-product").value.trim(),
+    revenue:document.getElementById("f-revenue").value.trim(),
+    contact:document.getElementById("f-contact").value.trim(),
+    phone:document.getElementById("f-phone").value.trim(),
+    address:document.getElementById("f-address").value.trim(),
+    status:document.getElementById("f-status").value,
+    m8:parseAmt(document.getElementById("f-m8").value),
+    m7:parseAmt(document.getElementById("f-m7").value),
+    m6:parseAmt(document.getElementById("f-m6").value),
+    m5:parseAmt(document.getElementById("f-m5").value)
+  };
+  loading(true,"저장 중...");
+  try {
+    if(editId){
+      const [updated]=await sbPatch("companies",editId,payload);
+      const idx=companies.findIndex(x=>x.id===editId);
+      if(idx>=0) companies[idx]={...companies[idx],...updated};
+      toast("업체 정보가 수정됐습니다");
+    } else {
+      const [created]=await sbPost("companies",payload);
+      companies.push({...created,contacts:[]});
+      toast("업체가 추가됐습니다");
+    }
+    render(); closeModal();
+  } catch(e){ toast("저장 실패: "+e.message,true); }
+  finally{ loading(false); }
+}
+
+/* ══ 초기 로드 ══ */
+loadAll();
+</script>
+</body>
+</html>
