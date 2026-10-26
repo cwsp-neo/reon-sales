@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>RE:ON 영업관리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#fff;--bg2:#f5f5f4;--bg3:#eeede9;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9d9c98;
+  --border:rgba(0,0,0,.12);--border2:rgba(0,0,0,.22);
+  --ok-bg:#eaf3de;--ok-txt:#3b6d11;
+  --warn-bg:#faeeda;--warn-txt:#854f0b;
+  --err-bg:#fcebeb;--err-txt:#a32d2d;
+  --r-md:8px;--r-lg:12px;
+  --navy:#0D2B55;--gold:#C9A84C;
+  --rental:#0D2B55;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;background:#f8f8f6;color:var(--text);font-size:14px;overflow-x:hidden;}
+.app{display:flex;flex-direction:column;height:100vh;}
+
+/* ── 최상단 앱 탭 (구독/렌탈 전환) ── */
+.app-header{background:var(--navy);padding:0 1.5rem;display:flex;align-items:center;gap:0;flex-shrink:0;}
+.app-logo{color:var(--gold);font-size:13px;font-weight:700;letter-spacing:.5px;padding:0 16px 0 0;border-right:1px solid rgba(255,255,255,.2);margin-right:16px;white-space:nowrap;}
+.app-tab{padding:14px 20px;font-size:13px;font-weight:500;color:rgba(255,255,255,.55);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap;}
+.app-tab.active{color:#fff;border-bottom-color:var(--gold);}
+.app-tab:hover:not(.active){color:rgba(255,255,255,.8);}
+
+/* ── 페이지 컨테이너 ── */
+.page{display:none;flex:1;overflow:auto;}
+.page.active{display:block;}
+.container{max-width:1600px;margin:0 auto;padding:1.25rem 1rem;}
+
+/* ── 상단 바 ── */
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;}
+.page-title{font-size:16px;font-weight:500;display:flex;align-items:center;gap:8px;}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;letter-spacing:.4px;}
+.badge-sub{background:var(--navy);color:var(--gold);}
+.badge-rental{background:var(--navy);color:var(--gold);}
+
+/* ── 통계 ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1rem;}
+.stat{background:var(--bg);border-radius:var(--r-md);padding:.65rem 1rem;border:.5px solid var(--border);}
+.stat-label{font-size:11px;color:var(--text2);margin-bottom:3px;}
+.stat-value{font-size:19px;font-weight:500;}
+
+/* ── 폼 요소 ── */
+input[type=text],input[type=date],select,textarea{border:.5px solid var(--border2);border-radius:var(--r-md);padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;}
+input[type=text]:focus,input[type=date]:focus,select:focus,textarea:focus{border-color:var(--navy);}
+button{font-family:inherit;cursor:pointer;}
+.btn-primary{background:var(--navy);color:var(--gold);border:none;border-radius:var(--r-md);padding:8px 14px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary:hover{background:#163d7a;}
+.btn-primary.rental{background:var(--navy);}
+.btn-primary.rental:hover{background:#163d7a;}
+.btn-sm{font-size:12px;padding:5px 10px;border-radius:6px;border:.5px solid var(--border2);background:var(--bg);color:var(--text2);}
+.btn-sm:hover{background:var(--bg2);}
+.btn-danger{font-size:12px;padding:5px 10px;border-radius:6px;border:.5px solid #f0a0a0;background:transparent;color:var(--err-txt);}
+.btn-danger:hover{background:var(--err-bg);}
+.btn-transfer{font-size:11px;padding:4px 9px;border-radius:6px;border:.5px solid var(--border2);background:transparent;color:var(--text2);display:inline-flex;align-items:center;gap:3px;}
+.btn-transfer:hover{background:var(--bg2);}
+
+/* ── 툴바 ── */
+.toolbar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.toolbar input[type=text]{flex:1;min-width:160px;}
+.tab-bar{display:flex;gap:0;margin-bottom:1rem;border:.5px solid var(--border2);border-radius:var(--r-md);overflow:hidden;width:fit-content;}
+.tab-btn{padding:6px 16px;font-size:13px;font-family:inherit;border:none;background:var(--bg);color:var(--text2);cursor:pointer;}
+.tab-btn.active{background:var(--navy);color:var(--gold);font-weight:500;}
+.tab-btn.active.rental{background:var(--navy);}
+.tab-btn:not(.active):hover{background:var(--bg2);}
+
+/* ── 테이블 ── */
+.table-wrap{overflow-x:auto;border:.5px solid var(--border);border-radius:var(--r-lg);background:var(--bg);}
+table{width:100%;border-collapse:collapse;min-width:1100px;}
+thead th{background:var(--bg2);font-weight:500;font-size:11px;color:var(--text2);padding:9px 10px;text-align:left;border-bottom:.5px solid var(--border);white-space:nowrap;}
+thead th.th-amt{text-align:right;background:#0D2B5509;}
+thead th.th-amt.rental{background:#0D2B5509;}
+tbody tr{border-bottom:.5px solid var(--border);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--bg2);}
+tbody td{padding:9px 10px;vertical-align:middle;}
+td.td-amt{text-align:right;background:#0D2B5504;max-width:75px;}
+td.td-amt.rental{background:#0D2B5504;}
+td.td-amt-total{text-align:right;font-weight:500;color:var(--navy);background:#0D2B5509;max-width:90px;}
+td.td-amt-total.rental{color:var(--navy);background:#0D2B5509;}
+.td-sub{color:var(--text2);font-size:12px;}
+.name-link{font-weight:500;color:var(--navy);cursor:pointer;border-bottom:1px dashed transparent;transition:border-color .15s;}
+.name-link.rental{color:var(--navy);}
+.name-link:hover{border-bottom-color:currentColor;}
+.cnt-badge{font-size:10px;color:var(--text3);margin-left:4px;}
+.amt-input{width:100%;text-align:right;font-size:12px;border:none;background:transparent;color:var(--text);outline:none;cursor:pointer;font-variant-numeric:tabular-nums;padding:2px 0;font-family:inherit;}
+.amt-input:focus{background:var(--bg2);border-radius:4px;cursor:text;padding:2px 4px;}
+.amt-input::placeholder{color:var(--text3);}
+.empty{padding:2.5rem;text-align:center;color:var(--text2);font-size:14px;}
+
+/* ── 상태 배지 ── */
+.status-sel{display:inline-block;font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;border:none;cursor:pointer;font-family:inherit;}
+.status-badge{display:inline-block;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.s-contract{background:#0D2B5515;color:var(--navy);}
+.s-pending{background:#e8d5f5;color:#6a1b9a;font-weight:600;}
+.s-positive{background:var(--ok-bg);color:var(--ok-txt);}
+.s-neutral{background:var(--bg2);color:var(--text2);}
+.s-negative{background:var(--err-bg);color:var(--err-txt);}
+.s-existing{background:#0D2B5515;color:var(--navy);font-weight:600;}
+
+/* ── 컨택 타입 배지 ── */
+.type-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;}
+.type-visit{background:#0D2B5512;color:var(--navy);}
+.type-call{background:var(--ok-bg);color:var(--ok-txt);}
+.type-email{background:var(--warn-bg);color:var(--warn-txt);}
+.type-other{background:var(--bg2);color:var(--text2);}
+
+/* ── 일자별 컨택 뷰 ── */
+.daily-wrap{display:none;}
+.daily-wrap.show{display:block;}
+.daily-group{margin-bottom:1.5rem;}
+.daily-date-header{font-size:13px;font-weight:500;color:var(--navy);padding:8px 14px;background:#0D2B5509;border-radius:var(--r-md) var(--r-md) 0 0;border:.5px solid var(--border);}
+.daily-date-header.rental{color:var(--navy);background:#0D2B5509;}
+.daily-item{display:flex;gap:12px;align-items:flex-start;padding:10px 14px;border:.5px solid var(--border);border-top:none;background:var(--bg);}
+.daily-item:last-child{border-radius:0 0 var(--r-md) var(--r-md);}
+.daily-co-name{font-weight:500;color:var(--navy);cursor:pointer;font-size:13px;min-width:120px;}
+.daily-co-name.rental{color:var(--navy);}
+.daily-co-name:hover{text-decoration:underline;}
+.daily-text{font-size:13px;line-height:1.6;flex:1;white-space:pre-wrap;word-break:break-word;}
+.daily-status{flex-shrink:0;}
+
+/* ── 로딩/토스트 ── */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.loading-overlay.show{display:flex;}
+.spinner{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-msg{font-size:13px;color:var(--text2);}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:9px 18px;border-radius:var(--r-md);font-size:13px;opacity:0;transition:opacity .25s,transform .25s;z-index:600;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--err-txt);}
+
+/* ── 모달 공통 ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg);border-radius:var(--r-lg);border:.5px solid var(--border);padding:1.5rem;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;}
+.modal h3{font-size:16px;font-weight:500;margin-bottom:1rem;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-full{grid-column:1/-1;}
+.form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;}
+.form-group input,.form-group select,.form-group textarea{width:100%;}
+.form-group textarea{resize:vertical;height:64px;}
+.sec-div{grid-column:1/-1;font-size:12px;font-weight:500;color:var(--text2);padding:8px 0 4px;border-bottom:.5px solid var(--border);margin-top:4px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:1rem;}
+
+/* ── 컨택 수정 모달 ── */
+.edit-ct-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:400;align-items:center;justify-content:center;}
+.edit-ct-overlay.open{display:flex;}
+.edit-ct-modal{background:var(--bg);border-radius:var(--r-lg);border:.5px solid var(--border);padding:1.5rem;width:100%;max-width:500px;}
+.edit-ct-modal h3{font-size:15px;font-weight:500;margin-bottom:1rem;}
+.ec-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+
+/* ── 사이드 패널 ── */
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:300;}
+.panel-overlay.open{display:block;}
+.panel{position:fixed;top:0;right:-700px;width:680px;max-width:96vw;height:100vh;background:var(--bg);border-left:.5px solid var(--border);display:flex;flex-direction:column;z-index:301;transition:right .28s cubic-bezier(.4,0,.2,1);}
+.panel.open{right:0;}
+.ph{padding:1.25rem 1.5rem 1rem;border-bottom:.5px solid var(--border);flex-shrink:0;}
+.ph-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:.75rem;}
+.ph-name{font-size:18px;font-weight:500;color:var(--navy);}
+.ph-name.rental{color:var(--navy);}
+.ph-meta{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.6;}
+.ph-close{background:none;border:none;cursor:pointer;color:var(--text2);font-size:20px;padding:2px;line-height:1;flex-shrink:0;}
+.ph-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:.5rem;}
+.chip{background:var(--bg2);border-radius:6px;padding:4px 10px;font-size:12px;}
+.chip strong{color:var(--navy);font-weight:500;margin-left:3px;}
+.cf{padding:1rem 1.5rem;border-bottom:.5px solid var(--border);background:#0D2B5505;flex-shrink:0;}
+.cf.rental{background:#0D2B5505;}
+.cf-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;}
+.cf-r1{display:grid;grid-template-columns:155px 150px 1fr;gap:8px;margin-bottom:8px;}
+.cf-r2{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:flex-start;}
+.cf textarea{width:100%;height:72px;resize:vertical;font-size:13px;}
+.cf select,.cf input[type=date]{font-size:13px;width:100%;}
+.panel-body{flex:1;overflow-y:auto;padding:1.25rem 1.5rem;}
+.tl{display:flex;flex-direction:column;}
+.tl-item{display:flex;gap:14px;}
+.tl-item:last-child .tl-line{display:none;}
+.tl-spine{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:24px;}
+.tl-dot{width:11px;height:11px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.tl-dot.type-visit{background:var(--navy);}
+.tl-dot.type-call{background:var(--ok-txt);}
+.tl-dot.type-email{background:var(--warn-txt);}
+.tl-dot.type-other{background:var(--text3);}
+.tl-line{width:1.5px;background:var(--border2);flex:1;min-height:14px;margin-top:4px;}
+.tl-content{flex:1;padding-bottom:22px;}
+.tl-header{display:flex;align-items:center;gap:7px;margin-bottom:7px;flex-wrap:wrap;}
+.tl-date{font-size:12px;font-weight:500;color:var(--text2);}
+.tl-card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--r-md);padding:10px 14px;font-size:13px;line-height:1.75;white-space:pre-wrap;word-break:break-word;}
+.tl-foot{display:flex;justify-content:flex-end;margin-top:4px;gap:8px;}
+.tl-del{font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:3px;opacity:0;transition:opacity .15s;}
+.tl-item:hover .tl-del{opacity:1;}
+.tl-del:hover{color:var(--err-txt);}
+.panel-empty{text-align:center;padding:3rem 1rem;color:var(--text2);font-size:14px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── 앱 헤더 (구독/렌탈 전환) ── -->
+<div class="app-header">
+  <div class="app-logo">RE:ON</div>
+  <button class="app-tab active" id="apptab-sub" onclick="switchPage('sub')">구독 영업관리</button>
+  <button class="app-tab" id="apptab-rental" onclick="switchPage('rental')">렌탈 영업관리</button>
+</div>
+
+<!-- ════ 구독 페이지 ════ -->
+<div class="page active" id="page-sub">
+<div class="container">
+  <div class="top-bar">
+    <div class="page-title"><span class="badge badge-sub">구독</span> 영업관리</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-sm" onclick="downloadExcel('sub')" style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;"><i class="ti ti-file-spreadsheet"></i> 엑셀</button>
+      <button class="btn-primary" onclick="openModal('sub')"><i class="ti ti-plus"></i> 업체 추가</button>
+    </div>
+  </div>
+  <div class="stats" id="stats-sub"></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="subtab-company" onclick="switchTab('sub','company')">업체별 관리</button>
+    <button class="tab-btn" id="subtab-daily" onclick="switchTab('sub','daily')">일자별 컨택</button>
+  </div>
+  <div id="toolbar-sub-company" class="toolbar">
+    <input type="text" id="search-sub" placeholder="업체명 또는 담당자 검색..." oninput="renderTable('sub')"/>
+    <select id="filter-sub" onchange="renderTable('sub')">
+      <option value="">전체 상태</option>
+      <option value="contract">구독제휴회사</option>
+      <option value="pending">제휴예정</option>
+      <option value="positive">긍정적</option>
+      <option value="neutral">중립</option>
+      <option value="negative">부정적</option>
+    </select>
+  </div>
+  <div id="toolbar-sub-daily" class="toolbar" style="display:none;">
+    <input type="text" id="search-sub-daily" placeholder="업체명 또는 내용 검색..." oninput="renderDaily('sub')"/>
+  </div>
+  <div id="tablewrap-sub" class="table-wrap">
+    <table>
+      <thead><tr>
+        <th style="min-width:160px;">업체명</th>
+        <th style="min-width:150px;">주요 제품</th>
+        <th style="min-width:110px;">담당자</th>
+        <th style="min-width:120px;">연락처</th>
+        <th class="th-amt" style="min-width:85px;">취급총액</th>
+        <th class="th-amt" id="th-sub-m2" style="min-width:70px;"></th>
+        <th class="th-amt" id="th-sub-m1" style="min-width:70px;"></th>
+        <th class="th-amt" id="th-sub-m0" style="min-width:70px;"></th>
+        <th>최근 컨택</th><th>상태</th><th style="min-width:80px;">관리</th>
+      </tr></thead>
+      <tbody id="tbody-sub"></tbody>
+    </table>
+    <div id="empty-sub" class="empty" style="display:none;"><i class="ti ti-building-off" style="font-size:28px;display:block;margin:0 auto 8px;"></i>등록된 업체가 없습니다</div>
+  </div>
+  <div class="daily-wrap" id="daily-sub">
+    <div id="daily-content-sub"></div>
+    <div id="daily-empty-sub" class="empty" style="display:none;"><i class="ti ti-calendar-off" style="font-size:28px;display:block;margin:0 auto 8px;"></i>컨택 이력이 없습니다</div>
+  </div>
+</div>
+</div>
+
+<!-- ════ 렌탈 페이지 ════ -->
+<div class="page" id="page-rental">
+<div class="container">
+  <div class="top-bar">
+    <div class="page-title"><span class="badge badge-rental">렌탈</span> 영업관리</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-sm" onclick="downloadExcel('rental')" style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;"><i class="ti ti-file-spreadsheet"></i> 엑셀</button>
+      <button class="btn-primary rental" onclick="openModal('rental')"><i class="ti ti-plus"></i> 업체 추가</button>
+    </div>
+  </div>
+  <div class="stats" id="stats-rental"></div>
+  <div class="tab-bar">
+    <button class="tab-btn active rental" id="rentaltab-company" onclick="switchTab('rental','company')">업체별 관리</button>
+    <button class="tab-btn" id="rentaltab-daily" onclick="switchTab('rental','daily')">일자별 컨택</button>
+  </div>
+  <div id="toolbar-rental-company" class="toolbar">
+    <input type="text" id="search-rental" placeholder="업체명 또는 담당자 검색..." oninput="renderTable('rental')"/>
+    <select id="filter-rental" onchange="renderTable('rental')">
+      <option value="">전체 상태</option>
+      <option value="existing">기거래</option>
+      <option value="positive">긍정적</option>
+      <option value="neutral">중립</option>
+      <option value="negative">부정적</option>
+    </select>
+  </div>
+  <div id="toolbar-rental-daily" class="toolbar" style="display:none;">
+    <input type="text" id="search-rental-daily" placeholder="업체명 또는 내용 검색..." oninput="renderDaily('rental')"/>
+  </div>
+  <div id="tablewrap-rental" class="table-wrap">
+    <table>
+      <thead><tr>
+        <th style="min-width:160px;">업체명</th>
+        <th style="min-width:150px;">주요 제품</th>
+        <th style="min-width:110px;">담당자</th>
+        <th style="min-width:120px;">연락처</th>
+        <th class="th-amt rental" style="min-width:85px;">취급총액</th>
+        <th class="th-amt rental" id="th-rental-m2" style="min-width:70px;"></th>
+        <th class="th-amt rental" id="th-rental-m1" style="min-width:70px;"></th>
+        <th class="th-amt rental" id="th-rental-m0" style="min-width:70px;"></th>
+        <th>최근 컨택</th><th>상태</th><th style="min-width:80px;">관리</th>
+      </tr></thead>
+      <tbody id="tbody-rental"></tbody>
+    </table>
+    <div id="empty-rental" class="empty" style="display:none;"><i class="ti ti-building-off" style="font-size:28px;display:block;margin:0 auto 8px;"></i>등록된 업체가 없습니다</div>
+  </div>
+  <div class="daily-wrap" id="daily-rental">
+    <div id="daily-content-rental"></div>
+    <div id="daily-empty-rental" class="empty" style="display:none;"><i class="ti ti-calendar-off" style="font-size:28px;display:block;margin:0 auto 8px;"></i>컨택 이력이 없습니다</div>
+  </div>
+</div>
+</div>
+
+</div><!-- /app -->
+
+<!-- ── 로딩/토스트 ── -->
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="loading-msg" id="loadingMsg">데이터 불러오는 중...</div></div>
+<div class="toast" id="toast"></div>
+
+<!-- ── 업체 등록/수정 모달 ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeIfOut(event)">
+  <div class="modal">
+    <h3 id="modalTitle">업체 추가</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>업체명 *</label><input type="text" id="f-name" placeholder="(주)예시기업"/></div>
+      <div class="form-group"><label>주요 제품</label><input type="text" id="f-product" placeholder="산업용 장비 등"/></div>
+      <div class="form-group form-full"><label>사업장 주소</label><input type="text" id="f-address" placeholder="서울시 강남구 테헤란로 123"/></div>
+      <div class="form-group"><label>담당자명</label><input type="text" id="f-contact" placeholder="홍길동 부장"/></div>
+      <div class="form-group"><label>연락처</label><input type="text" id="f-phone" placeholder="010-0000-0000"/></div>
+      <div class="form-group form-full"><label>초기 상태</label><select id="f-status"></select></div>
+      <div class="sec-div"><i class="ti ti-chart-bar" style="vertical-align:-2px;margin-right:4px;"></i>월별 취급액</div>
+      <div class="form-group"><label id="fl-m0"></label><input type="text" id="f-m0" placeholder="0" oninput="fmtInput(this)"/></div>
+      <div class="form-group"><label id="fl-m1"></label><input type="text" id="f-m1" placeholder="0" oninput="fmtInput(this)"/></div>
+      <div class="form-group"><label id="fl-m2"></label><input type="text" id="f-m2" placeholder="0" oninput="fmtInput(this)"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeModal()">취소</button>
+      <button class="btn-primary" id="modal-save-btn" onclick="saveCompany()"><i class="ti ti-check"></i> 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 컨택 수정 모달 ── -->
+<div class="edit-ct-overlay" id="editCtOverlay" onclick="closeEditCtIfOut(event)">
+  <div class="edit-ct-modal">
+    <h3>컨택 이력 수정</h3>
+    <div class="ec-row">
+      <div class="form-group"><label>날짜</label><input type="date" id="ec-date"/></div>
+      <div class="form-group"><label>유형</label>
+        <select id="ec-type">
+          <option value="visit">방문 미팅</option><option value="call">유선 통화</option>
+          <option value="email">이메일</option><option value="other">기타</option>
+        </select>
+      </div>
+      <div class="form-group"><label>반응 상태</label><select id="ec-status"></select></div>
+    </div>
+    <div class="form-group"><label>내용</label><textarea id="ec-text" style="height:100px;resize:vertical;width:100%;font-size:13px;"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeEditCt()">취소</button>
+      <button class="btn-primary" onclick="saveEditCt()"><i class="ti ti-check"></i> 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 사이드 패널 ── -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="ph">
+    <div class="ph-top">
+      <div>
+        <div class="ph-name" id="pn-name"></div>
+        <div class="ph-meta" id="pn-meta"></div>
+      </div>
+      <button class="ph-close" onclick="closePanel()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ph-chips" id="pn-chips"></div>
+  </div>
+  <div class="cf" id="cf-area">
+    <div class="cf-title"><i class="ti ti-pencil-plus" style="font-size:13px;vertical-align:-2px;margin-right:4px;"></i> 컨택 이력 추가</div>
+    <div class="cf-r1">
+      <input type="date" id="pf-date"/>
+      <select id="pf-type">
+        <option value="visit">방문 미팅</option><option value="call">유선 통화</option>
+        <option value="email">이메일</option><option value="other">기타</option>
+      </select>
+      <select id="pf-status"></select>
+    </div>
+    <div class="cf-r2">
+      <textarea id="pf-text" placeholder="미팅·통화 내용, 주요 논의사항, 다음 액션 아이템 등을 기록하세요..."></textarea>
+      <button class="btn-primary" id="pf-send-btn" onclick="addContact()" style="height:72px;padding:0 18px;flex-shrink:0;font-size:15px;"><i class="ti ti-send"></i></button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <div class="panel-empty" id="panel-empty" style="display:none;"><i class="ti ti-notes-off" style="font-size:28px;display:block;margin:0 auto 8px;"></i>아직 컨택 이력이 없습니다</div>
+    <div class="tl" id="tl"></div>
+  </div>
+</div>
+
+<script>
+/* ══ Supabase ══ */
+const SB_URL="https://tukmzwfzjftrldegpgny.supabase.co";
+const SB_KEY="sb_publishable_R-CLkYtEv3GqgT0jdy7KJQ_A6cQ9Aqe";
+const HDR={"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Prefer":"return=representation"};
+async function sbGet(t,q=""){const r=await fetch(`${SB_URL}/rest/v1/${t}?${q}`,{headers:HDR});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function sbPost(t,b){const r=await fetch(`${SB_URL}/rest/v1/${t}`,{method:"POST",headers:HDR,body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function sbPatch(t,id,b){const r=await fetch(`${SB_URL}/rest/v1/${t}?id=eq.${id}`,{method:"PATCH",headers:HDR,body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function sbDelete(t,id){const r=await fetch(`${SB_URL}/rest/v1/${t}?id=eq.${id}`,{method:"DELETE",headers:HDR});if(!r.ok)throw new Error(await r.text());}
+
+/* ══ 상태맵 ══ */
+const SM_SUB={
+  contract:{label:"구독제휴회사",cls:"s-contract"},
+  pending:{label:"제휴예정",cls:"s-pending"},
+  positive:{label:"긍정적",cls:"s-positive"},
+  neutral:{label:"중립",cls:"s-neutral"},
+  negative:{label:"부정적",cls:"s-negative"}
+};
+const SM_RENTAL={
+  existing:{label:"기거래",cls:"s-existing"},
+  positive:{label:"긍정적",cls:"s-positive"},
+  neutral:{label:"중립",cls:"s-neutral"},
+  negative:{label:"부정적",cls:"s-negative"}
+};
+const TM={
+  visit:{label:"방문 미팅",cls:"type-visit",icon:"ti-building"},
+  call:{label:"유선 통화",cls:"type-call",icon:"ti-phone"},
+  email:{label:"이메일",cls:"type-email",icon:"ti-mail"},
+  other:{label:"기타",cls:"type-other",icon:"ti-dots"}
+};
+const ORDER_SUB={contract:0,pending:1,positive:2,neutral:3,negative:4};
+const ORDER_RENTAL={existing:0,positive:1,neutral:2,negative:3};
+
+/* ══ 월 컬럼 자동계산 ══ */
+// DB 컬럼: m1~m12 (월 번호), 당월+직전2개월 표시
+function getMonthCols(){
+  const now=new Date();
+  const cols=[];
+  for(let i=2;i>=0;i--){
+    let y=now.getFullYear(),m=now.getMonth()+1-i;
+    if(m<=0){m+=12;y--;}
+    const key="m"+m;
+    const label=y+"년 "+m+"월";
+    cols.push({key,label,m,y});
+  }
+  return cols; // [2개월전, 1개월전, 당월]
+}
+const MONTH_COLS=getMonthCols();
+
+/* ══ 전역 상태 ══ */
+let allCompanies=[]; // 전체 (page:'sub'|'rental' 필드)
+let editId=null;
+let panelId=null;
+let currentPage='sub'; // 현재 페이지
+let editCtId=null;
+let tabState={sub:'company',rental:'company'};
+let modalPage='sub';
+
+function subCos(){return allCompanies.filter(c=>c.page==='sub');}
+function rentalCos(){return allCompanies.filter(c=>c.page==='rental');}
+function getCos(page){return page==='sub'?subCos():rentalCos();}
+function getSM(page){return page==='sub'?SM_SUB:SM_RENTAL;}
+function getOrder(page){return page==='sub'?ORDER_SUB:ORDER_RENTAL;}
+
+/* ══ 유틸 ══ */
+function parseAmt(s){return parseInt((s||"").toString().replace(/[^0-9]/g,""),10)||0;}
+function fmtAmt(n){return n?Number(n).toLocaleString("ko-KR"):"";}
+function fmtInput(el){const r=el.value.replace(/[^0-9]/g,"");el.value=r?Number(r).toLocaleString("ko-KR"):"";}
+function escH(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function lastContact(c){if(!(c.contacts&&c.contacts.length))return null;return c.contacts.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];}
+function calcTotal(c){return MONTH_COLS.reduce((s,col)=>s+(c[col.key]||0),0);}
+
+let toastTimer;
+function toast(msg,err=false){
+  const el=document.getElementById("toast");
+  el.textContent=msg;el.className="toast"+(err?" err":"")+" show";
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2500);
+}
+function loading(show,msg="저장 중..."){
+  document.getElementById("loadingOverlay").classList.toggle("show",show);
+  document.getElementById("loadingMsg").textContent=msg;
+}
+
+/* ══ 테이블 헤더 월 라벨 초기화 ══ */
+function initMonthHeaders(){
+  MONTH_COLS.forEach((col,i)=>{
+    ["sub","rental"].forEach(p=>{
+      const th=document.getElementById(`th-${p}-m${i}`);
+      if(th) th.textContent=col.label;
+    });
+    // 모달 라벨
+    const fl=document.getElementById("fl-m"+i);
+    if(fl) fl.textContent=col.label;
+  });
+}
+
+/* ══ 데이터 로드 ══ */
+async function loadAll(){
+  loading(true,"데이터 불러오는 중...");
+  try{
+    const [cos,cts]=await Promise.all([
+      sbGet("companies","order=created_at.asc"),
+      sbGet("contacts","order=date.desc")
+    ]);
+    // page 필드 없는 기존 데이터: status='rental'이면 rental, 아니면 sub
+    allCompanies=cos.map(c=>({
+      ...c,
+      page: c.page || (c.status==='rental'?'rental':'sub'),
+      // rental 페이지로 이관된 업체의 status 보정
+      status: (c.page==='rental'||(!c.page&&c.status==='rental'))
+        ? (c.status==='rental'?'existing':c.status)
+        : c.status,
+      contacts:cts.filter(ct=>ct.company_id===c.id)
+    }));
+    renderAll();
+  }catch(e){toast("데이터 로드 실패: "+e.message,true);}
+  finally{loading(false);}
+}
+
+function renderAll(){
+  renderTable('sub');
+  renderTable('rental');
+  updateStats('sub');
+  updateStats('rental');
+}
+
+/* ══ 통계 ══ */
+function updateStats(page){
+  const cos=getCos(page);
+  const sm=getSM(page);
+  let tot=0;
+  const counts={};
+  Object.keys(sm).forEach(k=>counts[k]=0);
+  cos.forEach(c=>{if(counts[c.status]!==undefined)counts[c.status]++;tot+=calcTotal(c);});
+  const topStatus=Object.entries(sm).slice(0,3);
+  document.getElementById("stats-"+page).innerHTML=`
+    <div class="stat"><div class="stat-label">전체 업체</div><div class="stat-value">${cos.length}</div></div>
+    ${topStatus.map(([k,v])=>`<div class="stat"><div class="stat-label">${v.label}</div><div class="stat-value">${counts[k]||0}</div></div>`).join("")}
+    <div class="stat"><div class="stat-label">전체 취급총액</div><div class="stat-value" style="font-size:15px;color:var(--navy);">${tot?tot.toLocaleString("ko-KR"):"-"}</div></div>
+  `;
+}
+
+/* ══ 테이블 렌더 ══ */
+function renderTable(page){
+  const q=(document.getElementById("search-"+page)||{value:""}).value.toLowerCase();
+  const fs=(document.getElementById("filter-"+page)||{value:""}).value;
+  const sm=getSM(page);
+  const order=getOrder(page);
+  const isRental=page==='rental';
+
+  let filtered=getCos(page).filter(c=>
+    (!q||c.name.toLowerCase().includes(q)||(c.contact||"").toLowerCase().includes(q))&&
+    (!fs||c.status===fs)
+  );
+  filtered.sort((a,b)=>{
+    const sa=order[a.status]??99,sb=order[b.status]??99;
+    if(sa!==sb)return sa-sb;
+    const la=lastContact(a)?lastContact(a).date:'0000-00-00';
+    const lb=lastContact(b)?lastContact(b).date:'0000-00-00';
+    return lb.localeCompare(la);
+  });
+
+  updateStats(page);
+  const tbody=document.getElementById("tbody-"+page);
+  const empty=document.getElementById("empty-"+page);
+  empty.style.display=filtered.length===0?"block":"none";
+  if(!filtered.length){tbody.innerHTML="";return;}
+
+  const amtClass=isRental?"td-amt rental":"td-amt";
+  const totClass=isRental?"td-amt-total rental":"td-amt-total";
+  const nameClass=isRental?"name-link rental":"name-link";
+  const targetPage=isRental?'sub':'rental';
+  const transferLabel=isRental?'구독으로 이관':'렌탈로 이관';
+
+  tbody.innerHTML=filtered.map(c=>{
+    const lc=lastContact(c);
+    const s=sm[c.status]||Object.values(sm)[0];
+    const total=calcTotal(c);
+    const cnt=(c.contacts||[]).length;
+    return `<tr>
+      <td>
+        <span class="${nameClass}" onclick="openPanel(${c.id})">${escH(c.name)}</span>
+        ${cnt>0?`<span class="cnt-badge">(${cnt}건)</span>`:""}
+        ${c.address?`<div style="font-size:11px;color:var(--text3);margin-top:2px;">${escH(c.address)}</div>`:""}
+      </td>
+      <td class="td-sub">${escH(c.product||"-")}</td>
+      <td>${escH(c.contact||"-")}</td>
+      <td class="td-sub" style="white-space:nowrap;">${escH(c.phone||"-")}</td>
+      <td class="${totClass}" id="tot-${c.id}">${fmtAmt(total)||"-"}</td>
+      ${[...MONTH_COLS].reverse().map(col=>`<td class="${amtClass}">${amtCell(c.id,col.key,c[col.key])}</td>`).join("")}
+      <td class="td-sub" style="white-space:nowrap;">${lc?lc.date:"-"}</td>
+      <td>
+        <select class="status-sel ${s.cls}" onchange="chgStatus(${c.id},this.value,'${page}')">
+          ${Object.entries(sm).map(([v,m])=>`<option value="${v}" ${c.status===v?"selected":""}>${m.label}</option>`).join("")}
+        </select>
+      </td>
+      <td style="white-space:nowrap;"><div style="display:flex;gap:3px;flex-wrap:nowrap;">
+        <button class="btn-sm" onclick="openEdit(${c.id})"><i class="ti ti-edit"></i></button>
+        <button class="btn-transfer" onclick="transferCo(${c.id},'${targetPage}')" title="${transferLabel}"><i class="ti ti-arrows-exchange" style="font-size:11px;"></i></button>
+        <button class="btn-danger" onclick="delCo(${c.id})"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+
+/* ══ 취급액 인라인 ══ */
+function amtCell(id,field,val){
+  const v=fmtAmt(val);
+  return `<input class="amt-input" data-id="${id}" data-field="${field}" value="${v}" placeholder="-"
+    onfocus="this.value=this.value.replace(/,/g,'')"
+    onblur="saveAmt(this)" oninput="this.value=this.value.replace(/[^0-9]/g,'')"/>`;
+}
+async function saveAmt(el){
+  const id=Number(el.dataset.id),field=el.dataset.field,raw=parseAmt(el.value);
+  el.value=fmtAmt(raw);
+  const c=allCompanies.find(x=>x.id===id);if(!c)return;
+  c[field]=raw;
+  const tot=document.getElementById("tot-"+id);
+  if(tot)tot.textContent=fmtAmt(calcTotal(c))||"-";
+  updateStats(c.page);
+  try{await sbPatch("companies",id,{[field]:raw});toast("저장됐습니다");}
+  catch(e){toast("저장 실패: "+e.message,true);}
+}
+
+/* ══ 상태 변경 ══ */
+async function chgStatus(id,val,page){
+  const c=allCompanies.find(x=>x.id===id);if(!c)return;
+  c.status=val;renderTable(page);
+  if(panelId===id)renderPanel();
+  try{await sbPatch("companies",id,{status:val});toast("상태 변경됐습니다");}
+  catch(e){toast("저장 실패: "+e.message,true);}
+}
+
+/* ══ 업체 이관 ══ */
+async function transferCo(id,targetPage){
+  const c=allCompanies.find(x=>x.id===id);if(!c)return;
+  const fromLabel=c.page==='sub'?'구독':'렌탈';
+  const toLabel=targetPage==='sub'?'구독':'렌탈';
+  if(!confirm(`[${escH(c.name)}]을 ${fromLabel} → ${toLabel} 영업관리로 이관하시겠습니까?\n(기존 정보 및 컨택 이력은 그대로 유지됩니다)`))return;
+  loading(true,"이관 중...");
+  const fromPage=c.page;
+  // 이관 시 상태값 보정 (양쪽 SM에 없는 값이면 기본값으로)
+  const newSM=targetPage==='sub'?SM_SUB:SM_RENTAL;
+  const newStatus=newSM[c.status]?c.status:Object.keys(newSM)[0];
+  try{
+    await sbPatch("companies",id,{page:targetPage,status:newStatus});
+    c.page=targetPage;c.status=newStatus;
+    renderTable(fromPage);renderTable(targetPage);
+    toast(`${toLabel} 영업관리로 이관됐습니다`);
+  }catch(e){toast("이관 실패: "+e.message,true);}
+  finally{loading(false);}
+}
+
+/* ══ 업체 삭제 ══ */
+async function delCo(id){
+  if(!confirm("해당 업체를 삭제하시겠습니까? (컨택 이력도 함께 삭제됩니다)"))return;
+  loading(true,"삭제 중...");
+  const c=allCompanies.find(x=>x.id===id);
+  const page=c?c.page:'sub';
+  try{
+    await sbDelete("companies",id);
+    allCompanies=allCompanies.filter(x=>x.id!==id);
+    renderTable(page);toast("삭제됐습니다");
+  }catch(e){toast("삭제 실패: "+e.message,true);}
+  finally{loading(false);}
+}
+
+/* ══ 페이지/탭 전환 ══ */
+function switchPage(page){
+  currentPage=page;
+  document.getElementById("apptab-sub").classList.toggle("active",page==='sub');
+  document.getElementById("apptab-rental").classList.toggle("active",page==='rental');
+  document.getElementById("page-sub").classList.toggle("active",page==='sub');
+  document.getElementById("page-rental").classList.toggle("active",page==='rental');
+}
+function switchTab(page,tab){
+  tabState[page]=tab;
+  const isCompany=tab==='company';
+  document.getElementById(`${page}tab-company`).classList.toggle("active",isCompany);
+  document.getElementById(`${page}tab-daily`).classList.toggle("active",!isCompany);
+  document.getElementById(`toolbar-${page}-company`).style.display=isCompany?'':'none';
+  document.getElementById(`toolbar-${page}-daily`).style.display=isCompany?'none':'';
+  document.getElementById(`tablewrap-${page}`).style.display=isCompany?'':'none';
+  document.getElementById(`empty-${page}`).style.display='none';
+  const dw=document.getElementById(`daily-${page}`);
+  dw.classList.toggle('show',!isCompany);
+  if(!isCompany)renderDaily(page);
+}
+
+/* ══ 일자별 컨택 렌더 ══ */
+function renderDaily(page){
+  const q=(document.getElementById(`search-${page}-daily`)||{value:""}).value.toLowerCase();
+  const isRental=page==='rental';
+  const sm=getSM(page);
+  const cos=getCos(page);
+  let allCts=[];
+  cos.forEach(c=>{
+    (c.contacts||[]).forEach(ct=>{
+      if(!q||c.name.toLowerCase().includes(q)||(ct.text||"").toLowerCase().includes(q))
+        allCts.push({...ct,coName:c.name,coId:c.id});
+    });
+  });
+  allCts.sort((a,b)=>b.date.localeCompare(a.date));
+  const container=document.getElementById(`daily-content-${page}`);
+  const empty=document.getElementById(`daily-empty-${page}`);
+  if(!allCts.length){container.innerHTML="";empty.style.display="block";return;}
+  empty.style.display="none";
+  const groups={};
+  allCts.forEach(ct=>{if(!groups[ct.date])groups[ct.date]=[];groups[ct.date].push(ct);});
+  const nameClass=isRental?"daily-co-name rental":"daily-co-name";
+  const headerClass=isRental?"daily-date-header rental":"daily-date-header";
+  container.innerHTML=Object.entries(groups).map(([date,cts])=>`
+    <div class="daily-group">
+      <div class="${headerClass}"><i class="ti ti-calendar" style="vertical-align:-2px;margin-right:6px;"></i>${date}</div>
+      ${cts.map(ct=>{
+        const tm=TM[ct.type]||TM.other;
+        const s=sm[ct.status]||Object.values(sm)[0];
+        return `<div class="daily-item">
+          <span class="${nameClass}" onclick="openPanel(${ct.coId})">${escH(ct.coName)}</span>
+          <span class="type-badge ${tm.cls}"><i class="ti ${tm.icon}" style="font-size:11px;"></i>${tm.label}</span>
+          <span class="daily-text">${escH(ct.text||"")}</span>
+          <span class="status-badge ${s.cls}">${s.label}</span>
+        </div>`;
+      }).join("")}
+    </div>
+  `).join("");
+}
+
+/* ══ 사이드 패널 ══ */
+function openPanel(id){
+  panelId=id;
+  const c=allCompanies.find(x=>x.id===id);if(!c)return;
+  const isRental=c.page==='rental';
+  document.getElementById("pf-date").value=new Date().toISOString().split("T")[0];
+  document.getElementById("pf-text").value="";
+  // 패널 컬러
+  document.getElementById("pn-name").className="ph-name"+(isRental?" rental":"");
+  document.getElementById("cf-area").className="cf"+(isRental?" rental":"");
+  document.getElementById("pf-send-btn").className="btn-primary"+(isRental?" rental":"");
+  // 상태 select 채우기
+  fillStatusSelect("pf-status",c.page,c.status);
+  renderPanel();
+  document.getElementById("panelOverlay").classList.add("open");
+  document.getElementById("panel").classList.add("open");
+}
+function closePanel(){
+  document.getElementById("panelOverlay").classList.remove("open");
+  document.getElementById("panel").classList.remove("open");
+  panelId=null;
+}
+function renderPanel(){
+  const c=allCompanies.find(x=>x.id===panelId);if(!c)return;
+  const sm=getSM(c.page);
+  const cts=(c.contacts||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById("pn-name").textContent=c.name;
+  document.getElementById("pn-meta").textContent=[c.address,c.contact&&c.phone?c.contact+" · "+c.phone:c.contact||c.phone].filter(Boolean).join("\n");
+  const s=sm[c.status]||Object.values(sm)[0];
+  document.getElementById("pn-chips").innerHTML=`
+    <div class="chip">컨택 이력<strong>${cts.length}건</strong></div>
+    <div class="chip">현재 상태<strong>
+      <select class="status-sel ${s.cls}" onchange="chgStatus(${c.id},this.value,'${c.page}')" style="font-size:11px;padding:1px 6px;border-radius:20px;border:none;cursor:pointer;font-weight:500;font-family:inherit;">
+        ${Object.entries(sm).map(([v,m])=>`<option value="${v}" ${c.status===v?"selected":""}>${m.label}</option>`).join("")}
+      </select>
+    </strong></div>
+  `;
+  document.getElementById("pf-status").value=c.status;
+  const empty=document.getElementById("panel-empty"),tl=document.getElementById("tl");
+  if(!cts.length){empty.style.display="block";tl.innerHTML="";return;}
+  empty.style.display="none";
+  tl.innerHTML=cts.map(ct=>{
+    const tm=TM[ct.type]||TM.other,sv=sm[ct.status]||Object.values(sm)[0];
+    return `<div class="tl-item">
+      <div class="tl-spine"><div class="tl-dot ${tm.cls}"></div><div class="tl-line"></div></div>
+      <div class="tl-content">
+        <div class="tl-header">
+          <span class="tl-date">${ct.date}</span>
+          <span class="type-badge ${tm.cls}"><i class="ti ${tm.icon}" style="font-size:11px;"></i>${tm.label}</span>
+          <span class="status-badge ${sv.cls}">${sv.label}</span>
+        </div>
+        <div class="tl-card">${escH(ct.text||"")}</div>
+        <div class="tl-foot">
+          <button class="tl-del" onclick="openEditCt(${ct.id})" style="color:var(--text3);"><i class="ti ti-pencil" style="font-size:11px;"></i> 수정</button>
+          <button class="tl-del" onclick="delContact(${ct.id})"><i class="ti ti-trash" style="font-size:11px;"></i> 삭제</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function addContact(){
+  const date=document.getElementById("pf-date").value;
+  const type=document.getElementById("pf-type").value;
+  const status=document.getElementById("pf-status").value;
+  const text=document.getElementById("pf-text").value.trim();
+  if(!date||!text){alert("날짜와 내용을 입력해주세요.");return;}
+  const c=allCompanies.find(x=>x.id===panelId);if(!c)return;
+  loading(true,"저장 중...");
+  try{
+    const [newCt]=await sbPost("contacts",{company_id:panelId,date,type,status,text});
+    if(!c.contacts)c.contacts=[];
+    c.contacts.push(newCt);c.status=status;
+    await sbPatch("companies",panelId,{status});
+    renderTable(c.page);renderPanel();
+    document.getElementById("pf-text").value="";
+    toast("컨택 이력이 저장됐습니다");
+  }catch(e){toast("저장 실패: "+e.message,true);}
+  finally{loading(false);}
+}
+
+async function delContact(ctId){
+  if(!confirm("이 컨택 이력을 삭제하시겠습니까?"))return;
+  loading(true,"삭제 중...");
+  try{
+    await sbDelete("contacts",ctId);
+    const c=allCompanies.find(x=>x.id===panelId);
+    if(c)c.contacts=(c.contacts||[]).filter(ct=>ct.id!==ctId);
+    renderTable(c.page);renderPanel();
+    toast("삭제됐습니다");
+  }catch(e){toast("삭제 실패: "+e.message,true);}
+  finally{loading(false);}
+}
+
+/* ══ 컨택 수정 ══ */
+function openEditCt(ctId){
+  const c=allCompanies.find(x=>x.id===panelId);if(!c)return;
+  const ct=(c.contacts||[]).find(x=>x.id===ctId);if(!ct)return;
+  editCtId=ctId;
+  document.getElementById("ec-date").value=ct.date;
+  document.getElementById("ec-type").value=ct.type||"call";
+  fillStatusSelect("ec-status",c.page,ct.status);
+  document.getElementById("ec-text").value=ct.text||"";
+  document.getElementById("editCtOverlay").classList.add("open");
+}
+function closeEditCt(){document.getElementById("editCtOverlay").classList.remove("open");editCtId=null;}
+function closeEditCtIfOut(e){if(e.target===document.getElementById("editCtOverlay"))closeEditCt();}
+async function saveEditCt(){
+  const date=document.getElementById("ec-date").value;
+  const type=document.getElementById("ec-type").value;
+  const status=document.getElementById("ec-status").value;
+  const text=document.getElementById("ec-text").value.trim();
+  if(!date||!text){alert("날짜와 내용을 입력해주세요.");return;}
+  const c=allCompanies.find(x=>x.id===panelId);if(!c)return;
+  loading(true,"수정 중...");
+  try{
+    await sbPatch("contacts",editCtId,{date,type,status,text});
+    const ct=(c.contacts||[]).find(x=>x.id===editCtId);
+    if(ct){ct.date=date;ct.type=type;ct.status=status;ct.text=text;}
+    closeEditCt();renderTable(c.page);renderPanel();
+    if(tabState[c.page]==="daily")renderDaily(c.page);
+    toast("수정됐습니다");
+  }catch(e){toast("수정 실패: "+e.message,true);}
+  finally{loading(false);}
+}
+
+/* ══ 업체 모달 ══ */
+function fillStatusSelect(selId,page,cur){
+  const sm=getSM(page);
+  const sel=document.getElementById(selId);
+  sel.innerHTML=Object.entries(sm).map(([v,m])=>`<option value="${v}" ${cur===v?"selected":""}>${m.label}</option>`).join("");
+}
+
+function openModal(page){
+  modalPage=page;
+  editId=null;
+  document.getElementById("modalTitle").textContent="업체 추가 ("+(page==='sub'?'구독':'렌탈')+")";
+  ["name","product","contact","phone","address"].forEach(f=>document.getElementById("f-"+f).value="");
+  ["m0","m1","m2"].forEach(f=>document.getElementById("f-"+f).value="");
+  fillStatusSelect("f-status",page,"");
+  const btn=document.getElementById("modal-save-btn");
+  btn.className="btn-primary"+(page==='rental'?" rental":"");
+  document.getElementById("modalOverlay").classList.add("open");
+}
+function openEdit(id){
+  const c=allCompanies.find(x=>x.id===id);if(!c)return;
+  modalPage=c.page;editId=id;
+  document.getElementById("modalTitle").textContent="업체 정보 수정";
+  document.getElementById("f-name").value=c.name||"";
+  document.getElementById("f-product").value=c.product||"";
+  document.getElementById("f-contact").value=c.contact||"";
+  document.getElementById("f-phone").value=c.phone||"";
+  document.getElementById("f-address").value=c.address||"";
+  fillStatusSelect("f-status",c.page,c.status);
+  MONTH_COLS.forEach((col,i)=>{document.getElementById("f-m"+i).value=fmtAmt(c[col.key]);});
+  const btn=document.getElementById("modal-save-btn");
+  btn.className="btn-primary"+(c.page==='rental'?" rental":"");
+  document.getElementById("modalOverlay").classList.add("open");
+}
+function closeModal(){document.getElementById("modalOverlay").classList.remove("open");}
+function closeIfOut(e){if(e.target===document.getElementById("modalOverlay"))closeModal();}
+
+async function saveCompany(){
+  const name=document.getElementById("f-name").value.trim();
+  if(!name){alert("업체명을 입력해주세요.");return;}
+  const payload={
+    name,
+    product:document.getElementById("f-product").value.trim(),
+    contact:document.getElementById("f-contact").value.trim(),
+    phone:document.getElementById("f-phone").value.trim(),
+    address:document.getElementById("f-address").value.trim(),
+    status:document.getElementById("f-status").value,
+    page:modalPage
+  };
+  MONTH_COLS.forEach((col,i)=>{payload[col.key]=parseAmt(document.getElementById("f-m"+i).value);});
+  loading(true,"저장 중...");
+  try{
+    if(editId){
+      const [updated]=await sbPatch("companies",editId,payload);
+      const idx=allCompanies.findIndex(x=>x.id===editId);
+      if(idx>=0)allCompanies[idx]={...allCompanies[idx],...updated};
+      toast("업체 정보가 수정됐습니다");
+    }else{
+      const [created]=await sbPost("companies",payload);
+      allCompanies.push({...created,contacts:[]});
+      toast("업체가 추가됐습니다");
+    }
+    renderTable(modalPage);closeModal();
+  }catch(e){toast("저장 실패: "+e.message,true);}
+  finally{loading(false);}
+}
+
+/* ══ 엑셀 다운로드 ══ */
+function downloadExcel(page){
+  const cos=getCos(page);
+  if(!cos.length){toast("다운로드할 데이터가 없습니다.",true);return;}
+  const sm=getSM(page);
+  const wb=XLSX.utils.book_new();
+  const mLabels=MONTH_COLS.map(c=>c.label);
+  const coHeaders=["업체명","주요 제품","사업장 주소","담당자","연락처","상태","취급총액",...mLabels,"최근 컨택일"];
+  const coRows=cos.map(c=>{
+    const lc=lastContact(c);
+    return [c.name||"",c.product||"",c.address||"",c.contact||"",c.phone||"",
+      sm[c.status]?sm[c.status].label:c.status,
+      calcTotal(c),...MONTH_COLS.map(col=>c[col.key]||0),lc?lc.date:""];
+  });
+  const ws1=XLSX.utils.aoa_to_sheet([coHeaders,...coRows]);
+  ws1["!cols"]=[{wch:20},{wch:20},{wch:30},{wch:14},{wch:16},{wch:14},{wch:14},{wch:12},{wch:12},{wch:12},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws1,"업체 목록");
+  const ctHeaders=["컨택일자","업체명","컨택 유형","반응 상태","내용"];
+  const allCts=[];
+  cos.forEach(c=>(c.contacts||[]).forEach(ct=>allCts.push({...ct,coName:c.name})));
+  allCts.sort((a,b)=>b.date.localeCompare(a.date));
+  const ctRows=allCts.map(ct=>[ct.date,ct.coName||"",TM[ct.type]?TM[ct.type].label:ct.type,sm[ct.status]?sm[ct.status].label:ct.status,ct.text||""]);
+  const ws2=XLSX.utils.aoa_to_sheet([ctHeaders,...ctRows]);
+  ws2["!cols"]=[{wch:14},{wch:20},{wch:12},{wch:14},{wch:60}];
+  XLSX.utils.book_append_sheet(wb,ws2,"컨택 이력");
+  const today=new Date().toISOString().slice(0,10).replace(/-/g,"");
+  XLSX.writeFile(wb,`${today}_REON${page==='sub'?'구독':'렌탈'}영업관리.xlsx`);
+  toast("엑셀 다운로드 완료!");
+}
+
+/* ══ 초기화 ══ */
+initMonthHeaders();
+loadAll();
+</script>
+</body>
+</html>
